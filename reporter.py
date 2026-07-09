@@ -125,5 +125,5 @@ def print_5xx_spikes(
         print(
             f"{spike.start:%Y-%m-%d %H:%M} -> "
             f"{spike.end:%H:%M} "
-            f"| peak rate: {spike.peak_rate:.2f}%"
+            f"| error rate: {spike.error_rate:.2f}%"
         )

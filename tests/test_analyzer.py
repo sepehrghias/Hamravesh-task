@@ -7,11 +7,12 @@ from parser import LogEntry
 
 class LogAnalyzerTests(unittest.TestCase):
     def create_entry(
-        self,
-        ip: str,
-        path: str,
-        status: int,
-        hour: int,
+            self,
+            ip: str = "1.1.1.1",
+            path: str = "/",
+            status: int = 200,
+            hour: int = 10,
+            minute: int = 0,
     ) -> LogEntry:
         return LogEntry(
             ip=ip,
@@ -20,6 +21,7 @@ class LogAnalyzerTests(unittest.TestCase):
                 6,
                 1,
                 hour,
+                minute,
                 tzinfo=timezone.utc,
             ),
             method="GET",
@@ -132,6 +134,59 @@ class LogAnalyzerTests(unittest.TestCase):
             analyzer.hourly_counts[10],
             2,
         )
+
+    def test_detects_5xx_spike_intervals(self) -> None:
+        analyzer = LogAnalyzer()
+
+        for minute in [0, 5, 10]:
+            for _ in range(98):
+                analyzer.process(
+                    self.create_entry(
+                        status=200,
+                        hour=4,
+                        minute=minute,
+                    )
+                )
+
+            for _ in range(2):
+                analyzer.process(
+                    self.create_entry(
+                        status=500,
+                        hour=4,
+                        minute=minute,
+                    )
+                )
+
+        for minute in [15, 20]:
+            for _ in range(50):
+                analyzer.process(
+                    self.create_entry(
+                        status=200,
+                        hour=4,
+                        minute=minute,
+                    )
+                )
+
+            for _ in range(50):
+                analyzer.process(
+                    self.create_entry(
+                        status=500,
+                        hour=4,
+                        minute=minute,
+                    )
+                )
+
+        spikes = analyzer.detect_5xx_spikes()
+
+        self.assertEqual(len(spikes), 2)
+
+        self.assertEqual(spikes[0].start.minute, 15)
+        self.assertEqual(spikes[0].end.minute, 20)
+        self.assertEqual(spikes[0].error_rate, 50.0)
+
+        self.assertEqual(spikes[1].start.minute, 20)
+        self.assertEqual(spikes[1].end.minute, 25)
+        self.assertEqual(spikes[1].error_rate, 50.0)
 
 
 if __name__ == "__main__":

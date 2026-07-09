@@ -26,11 +26,11 @@ class ErrorBucket:
         )
 
 
-@dataclass(frozen=True)
+@dataclass
 class ErrorSpike:
     start: datetime
     end: datetime
-    peak_rate: float
+    error_rate: float
 
 
 class LogAnalyzer:
@@ -99,21 +99,26 @@ class LogAnalyzer:
         )
 
     def suspicious_login_ips(
-        self,
-        threshold: int = 100,
+            self,
+            threshold: int = 100,
     ) -> list[tuple[str, int]]:
-        return [
+        suspicious_ips = [
             (ip, count)
-            for ip, count
-            in self.failed_login_counts.most_common()
+            for ip, count in self.failed_login_counts.items()
             if count >= threshold
         ]
 
+        return sorted(
+            suspicious_ips,
+            key=lambda item: item[1],
+            reverse=True,
+        )
+
     def detect_5xx_spikes(
-        self,
-        min_requests: int = 100,
-        rate_multiplier: float = 3.0,
-        min_rate: float = 10.0,
+            self,
+            min_requests: int = 100,
+            rate_multiplier: float = 3.0,
+            min_rate: float = 10.0,
     ) -> list[ErrorSpike]:
         eligible_buckets = [
             bucket
@@ -136,55 +141,26 @@ class LogAnalyzer:
 
         anomalous_buckets = [
             (start, bucket)
-            for start, bucket
-            in sorted(self.server_error_buckets.items())
-            if bucket.total_requests >= min_requests
-            and bucket.error_rate >= spike_threshold
+            for start, bucket in self.server_error_buckets.items()
+            if (
+                    bucket.total_requests >= min_requests
+                    and bucket.error_rate >= spike_threshold
+            )
         ]
 
-        if not anomalous_buckets:
-            return []
+        anomalous_buckets.sort(
+            key=lambda item: item[0]
+        )
 
         bucket_duration = timedelta(
             minutes=ERROR_BUCKET_MINUTES
         )
 
-        spikes: list[ErrorSpike] = []
-
-        current_start, first_bucket = anomalous_buckets[0]
-
-        current_last_start = current_start
-        peak_rate = first_bucket.error_rate
-
-        for start, bucket in anomalous_buckets[1:]:
-            if start == current_last_start + bucket_duration:
-                current_last_start = start
-
-                peak_rate = max(
-                    peak_rate,
-                    bucket.error_rate,
-                )
-
-                continue
-
-            spikes.append(
-                ErrorSpike(
-                    start=current_start,
-                    end=current_last_start + bucket_duration,
-                    peak_rate=peak_rate,
-                )
-            )
-
-            current_start = start
-            current_last_start = start
-            peak_rate = bucket.error_rate
-
-        spikes.append(
+        return [
             ErrorSpike(
-                start=current_start,
-                end=current_last_start + bucket_duration,
-                peak_rate=peak_rate,
+                start=start,
+                end=start + bucket_duration,
+                error_rate=bucket.error_rate,
             )
-        )
-
-        return spikes
+            for start, bucket in anomalous_buckets
+        ]
