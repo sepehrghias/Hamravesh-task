@@ -188,6 +188,31 @@ class LogAnalyzerTests(unittest.TestCase):
         self.assertEqual(spikes[1].end.minute, 25)
         self.assertEqual(spikes[1].error_rate, 50.0)
 
+    def test_detects_suspicious_login_ip(self) -> None:
+        analyzer = LogAnalyzer()
+
+        for _ in range(3):
+            analyzer.process(
+                self.create_entry(
+                    ip="10.0.0.1",
+                    path="/login",
+                    status=401,
+                )
+            )
+
+        analyzer.process(
+            self.create_entry(
+                ip="10.0.0.2",
+                path="/login",
+                status=401,
+            )
+        )
+
+        self.assertEqual(
+            analyzer.suspicious_login_ips(threshold=3),
+            [("10.0.0.1", 3)],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

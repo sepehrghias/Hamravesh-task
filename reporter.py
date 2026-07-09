@@ -66,7 +66,7 @@ def print_hourly_distribution(
     print("-" * 70)
 
     max_count = max(
-        analyzer.hourly_counts.values(),
+        analyzer.hourly_counts,
         default=0,
     )
 

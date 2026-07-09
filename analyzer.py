@@ -41,7 +41,7 @@ class LogAnalyzer:
         self.unique_ips: set[str] = set()
 
         self.endpoint_counts: Counter[str] = Counter()
-        self.hourly_counts: Counter[int] = Counter()
+        self.hourly_counts: list[int] = [0] * 24
 
         self.error_count = 0
 
