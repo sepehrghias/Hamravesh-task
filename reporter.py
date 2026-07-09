@@ -20,6 +20,8 @@ def print_report(
 
     print_top_endpoints(analyzer, top_n)
     print_hourly_distribution(analyzer)
+    print_suspicious_activity(analyzer)
+    print_5xx_spikes(analyzer)
 
 
 def print_top_endpoints(
@@ -62,4 +64,44 @@ def print_hourly_distribution(
             f"{hour:02d}:00 | "
             f"{bar:<{BAR_WIDTH}} "
             f"{count:>10,}"
+        )
+
+def print_suspicious_activity(
+    analyzer: LogAnalyzer,
+) -> None:
+    suspicious_ips = analyzer.suspicious_login_ips()
+
+    print()
+    print("SUSPICIOUS LOGIN ACTIVITY")
+    print("-" * 50)
+
+    if not suspicious_ips:
+        print("No suspicious login activity detected.")
+        return
+
+    for ip, count in suspicious_ips:
+        print(
+            f"{ip:<20} "
+            f"{count:>10,} failed logins"
+        )
+
+
+def print_5xx_spikes(
+    analyzer: LogAnalyzer,
+) -> None:
+    spikes = analyzer.detect_5xx_spikes()
+
+    print()
+    print("5XX ERROR SPIKES")
+    print("-" * 50)
+
+    if not spikes:
+        print("No 5xx error spikes detected.")
+        return
+
+    for spike in spikes:
+        print(
+            f"{spike.start:%Y-%m-%d %H:%M} -> "
+            f"{spike.end:%H:%M} "
+            f"| peak rate: {spike.peak_rate:.2f}%"
         )
