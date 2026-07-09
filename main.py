@@ -1,17 +1,51 @@
+import argparse
+from pathlib import Path
+
 from analyzer import LogAnalyzer
 from parser import parse_line
+from reporter import print_report
 
 
-def analyze_file(path: str) -> LogAnalyzer:
+def positive_int(value: str) -> int:
+    number = int(value)
+
+    if number <= 0:
+        raise argparse.ArgumentTypeError(
+            "value must be greater than zero"
+        )
+
+    return number
+
+
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Analyze a web server access log.",
+    )
+
+    parser.add_argument(
+        "log_file",
+        type=Path,
+        help="Path to the access log file",
+    )
+
+    parser.add_argument(
+        "--top",
+        type=positive_int,
+        default=10,
+        help="Number of top endpoints to display",
+    )
+
+    return parser.parse_args()
+
+
+def analyze_file(path: Path) -> LogAnalyzer:
     analyzer = LogAnalyzer()
 
-    with open(
-        path,
+    with path.open(
         "r",
         encoding="utf-8",
         errors="replace",
     ) as log_file:
-
         for line in log_file:
             entry = parse_line(line)
 
@@ -24,15 +58,21 @@ def analyze_file(path: str) -> LogAnalyzer:
     return analyzer
 
 
+def main() -> None:
+    args = parse_arguments()
+
+    try:
+        analyzer = analyze_file(args.log_file)
+    except OSError as error:
+        raise SystemExit(
+            f"Error reading '{args.log_file}': {error}"
+        ) from error
+
+    print_report(
+        analyzer=analyzer,
+        top_n=args.top,
+    )
+
+
 if __name__ == "__main__":
-    analyzer = analyze_file("access.log")
-
-    print(f"Total requests: {analyzer.total_requests:,}")
-    print(f"Malformed lines: {analyzer.malformed_lines:,}")
-    print(f"Unique IPs: {len(analyzer.unique_ips):,}")
-    print(f"Error rate: {analyzer.error_rate:.2f}%")
-
-    print("Top 10 endpoints:")
-
-    for path, count in analyzer.endpoint_counts.most_common(10):
-        print(f"  {path}: {count:,}")
+    main()
