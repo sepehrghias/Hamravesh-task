@@ -7,6 +7,7 @@ BAR_WIDTH = 40
 def print_report(
     analyzer: LogAnalyzer,
     top_n: int,
+    elapsed_seconds: float,
 ) -> None:
     print()
     print("=" * 50)
@@ -22,6 +23,24 @@ def print_report(
     print_hourly_distribution(analyzer)
     print_suspicious_activity(analyzer)
     print_5xx_spikes(analyzer)
+
+    total_lines = (
+            analyzer.total_requests
+            + analyzer.malformed_lines
+    )
+
+    processing_speed = (
+        total_lines / elapsed_seconds
+        if elapsed_seconds > 0
+        else 0.0
+    )
+
+    print(f"Processing time : {elapsed_seconds:.2f} s")
+
+    print(
+        f"Processing speed: "
+        f"{processing_speed:,.0f} lines/s"
+    )
 
 
 def print_top_endpoints(
