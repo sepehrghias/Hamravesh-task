@@ -24,6 +24,9 @@ def print_report(
     print_suspicious_activity(analyzer)
     print_5xx_spikes(analyzer)
 
+    print("\nPERFORMANCE REPORT")
+    print("-" * 50)
+
     total_lines = (
             analyzer.total_requests
             + analyzer.malformed_lines
