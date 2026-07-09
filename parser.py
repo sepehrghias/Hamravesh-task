@@ -5,11 +5,24 @@ from typing import Optional
 
 
 LOG_PATTERN = re.compile(
-    r'^(?P<ip>\S+) \S+ \S+ '
-    r'\[(?P<timestamp>[^\]]+)\] '
-    r'"(?P<method>\S+) (?P<path>\S+) (?P<protocol>[^"]+)" '
-    r'(?P<status>\d{3}) (?P<size>\S+) '
-    r'"[^"]*" "[^"]*"$'
+    r"""
+    ^
+    (?P<ip>\S+)\s+
+    \S+\s+
+    \S+\s+
+    \[(?P<timestamp>[^\]]+)\]\s+
+    "
+    (?P<method>\S+)\s+
+    (?P<path>\S+)\s+
+    (?P<protocol>[^"]+)
+    "\s+
+    (?P<status>\d{3})\s+
+    (?P<size>\d+|-)\s+
+    "(?P<referrer>[^"]*)"\s+
+    "(?P<user_agent>[^"]*)"
+    $
+    """,
+    re.VERBOSE,
 )
 
 TIMESTAMP_FORMAT = "%d/%b/%Y:%H:%M:%S %z"
